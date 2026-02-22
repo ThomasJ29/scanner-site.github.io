@@ -3,283 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberScan Pro | Console d'Audit & Rapport Officiel</title>
+    <title>CyberScan Pro | Console & Rapport Multi-Pages</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; margin: 0; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; margin: 0; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
         
-        /* Vue Rapport A4 */
-        #report-view { background-color: #f1f5f9; color: #1e293b; display: none; min-height: 100vh; padding-bottom: 50px; }
+        /* Conteneur Rapport A4 */
+        #report-view { background-color: #f1f5f9; color: #1e293b; display: none; padding: 40px 0; }
         .report-container { 
             width: 210mm; 
-            min-height: 297mm; 
             margin: 0 auto; 
             background: white; 
             box-shadow: 0 10px 50px rgba(0,0,0,0.2); 
-            position: relative;
         }
+
+        /* Gestion des sauts de page PDF */
+        .page-break { page-break-before: always; }
 
         @media print {
             .no-print { display: none !important; }
             #report-view { background: white; padding: 0; }
             .report-container { box-shadow: none; margin: 0; width: 100%; }
         }
-
-        #terminal-logs::-webkit-scrollbar { width: 4px; }
-        #terminal-logs::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div id="setup-view" class="min-h-screen p-6 flex flex-col items-center">
-        <header class="w-full max-w-5xl py-12 flex justify-between items-center">
+        <header class="w-full max-w-5xl py-10 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/30">
-                    <i class="fas fa-shield-halved text-2xl text-white"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">CyberScan <span class="text-blue-500">Pro</span></h1>
-                    <p class="text-[10px] text-slate-500 font-bold tracking-[0.3em] uppercase mt-1">Audit Suite v2.0</p>
-                </div>
+                <div class="p-3 bg-blue-600 rounded-xl shadow-lg"><i class="fas fa-shield-halved text-white"></i></div>
+                <h1 class="text-2xl font-black uppercase">CyberScan <span class="text-blue-500">Pro</span></h1>
             </div>
         </header>
 
-        <main class="w-full max-w-5xl space-y-8">
-            <section class="glass p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                <h2 class="text-blue-400 text-xs font-black uppercase tracking-[0.25em] mb-6 flex items-center">
-                    <span class="h-1.5 w-1.5 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
-                    Audit de Visibilité Domaine
-                </h2>
+        <main class="w-full max-w-5xl space-y-6">
+            <section class="glass p-10 rounded-[2rem]">
+                <h2 class="text-blue-400 text-xs font-black uppercase tracking-widest mb-4">Analyse Domaine</h2>
                 <div class="flex flex-col md:flex-row gap-4">
                     <input type="text" id="domainInput" placeholder="ex: entreprise.fr" 
-                        class="flex-1 bg-slate-900/80 border border-slate-700 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 transition-all font-mono text-lg text-white">
-                    <button onclick="startAnalysisSequence()" 
-                        class="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg">
-                        LANCER L'AUDIT <i class="fas fa-bolt"></i>
+                        class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-6 py-4 outline-none focus:border-blue-500 text-white font-mono">
+                    <button onclick="startAnalysis()" class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-xl font-bold transition-all">
+                        LANCER L'AUDIT
                     </button>
                 </div>
             </section>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <section class="glass p-8 rounded-[2rem] space-y-4">
-                    <h2 class="text-red-400 text-xs font-black uppercase tracking-widest flex items-center">
-                        <i class="fas fa-user-secret mr-2"></i> Fuites de données (OSINT)
-                    </h2>
-                    <div class="flex gap-2">
-                        <input type="email" id="emailInput" placeholder="email@entreprise.fr" 
-                            class="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-5 py-3 outline-none focus:border-red-500 transition-all text-sm font-mono text-white">
-                        <button onclick="checkEmailSimple()" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 px-4 py-3 rounded-xl transition-all">
-                            <i class="fas fa-search text-xs"></i>
-                        </button>
-                    </div>
-                </section>
-
-                <section class="glass p-8 rounded-[2rem] space-y-4">
-                    <h2 class="text-emerald-400 text-xs font-black uppercase tracking-widest flex items-center">
-                        <i class="fas fa-key mr-2"></i> Robustesse Interne
-                    </h2>
-                    <input type="password" id="passInput" oninput="checkPassLocal()" placeholder="Saisir un mot de passe test" 
-                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-5 py-3 outline-none focus:border-emerald-500 transition-all text-sm font-mono text-white">
-                    <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div id="passBar" class="h-full w-0 transition-all duration-500 bg-emerald-500"></div>
-                    </div>
-                </section>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-red-400 text-[10px] font-bold uppercase mb-3">Fuites de données</h3>
+                    <input type="email" id="emailInput" placeholder="email@test.fr" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white">
+                </div>
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-emerald-400 text-[10px] font-bold uppercase mb-3">Mots de passe</h3>
+                    <input type="password" id="passInput" oninput="checkPass()" placeholder="Testez un mot de passe" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white text-white">
+                    <div class="h-1 bg-slate-800 mt-2 rounded-full overflow-hidden"><div id="passBar" class="h-full w-0 bg-emerald-500"></div></div>
+                </div>
             </div>
         </main>
     </div>
 
     <div id="loading-view" class="hidden min-h-screen flex flex-col items-center justify-center bg-[#0b0e14] fixed inset-0 z-[100]">
-        <div class="w-full max-w-lg p-8 space-y-8">
-            <div class="relative flex justify-center text-blue-500">
-                <div class="h-32 w-32 rounded-full border-t-2 border-blue-500 animate-spin"></div>
-                <i class="fas fa-shield-halved absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl animate-pulse"></i>
-            </div>
-            <div id="terminal-logs" class="bg-black/80 border border-slate-800 rounded-2xl p-6 h-48 overflow-y-auto font-mono text-[10px] text-slate-400 space-y-2">
-                </div>
+        <div class="text-center space-y-4">
+            <div class="h-20 w-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p class="font-mono text-blue-400 animate-pulse text-sm">SCANNING_SECURITY_PROTOCOLS...</p>
         </div>
     </div>
 
     <div id="report-view">
-        <div class="no-print bg-slate-900 p-4 sticky top-0 z-[200] flex justify-center gap-4 border-b border-slate-800 shadow-xl">
-            <button onclick="window.location.reload()" class="text-white border border-slate-700 px-8 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all uppercase">
-                <i class="fas fa-redo mr-2"></i> Nouvel Audit
-            </button>
-            <button onclick="exportToPDF()" class="bg-emerald-600 text-white px-8 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-500 transition-all uppercase">
-                <i class="fas fa-file-pdf mr-2"></i> Télécharger le Rapport
-            </button>
+        <div class="no-print mb-10 flex justify-center gap-4">
+            <button onclick="window.location.reload()" class="bg-slate-800 text-white px-6 py-2 rounded-xl text-sm font-bold uppercase">Retour</button>
+            <button onclick="exportToPDF()" class="bg-emerald-600 text-white px-6 py-2 rounded-xl text-sm font-bold uppercase shadow-lg shadow-emerald-900/20">Exporter PDF</button>
         </div>
 
-        <div id="report-content" class="report-container overflow-hidden">
-            <div class="bg-[#0f172a] text-white p-14 flex justify-between items-end">
-                <div class="space-y-3">
-                    <div class="bg-blue-600 text-[9px] font-black px-3 py-1 rounded-sm inline-block uppercase tracking-[0.2em]">Rapport Officiel de Conformité</div>
-                    <h1 class="text-5xl font-black tracking-tighter uppercase leading-none text-white">Analyse<br>Sécurité</h1>
-                    <p class="text-blue-400 text-sm italic opacity-80">Expertise Simplifiée pour TPE/PME</p>
+        <div id="report-content" class="report-container">
+            <div class="p-10 space-y-8">
+                <div class="bg-[#0f172a] text-white p-8 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <div class="text-[9px] font-black bg-blue-600 px-2 py-0.5 rounded inline-block uppercase tracking-widest mb-1">Audit de Conformité</div>
+                        <h1 class="text-3xl font-black uppercase leading-none">Analyse Sécurité</h1>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Domaine</p>
+                        <p class="text-xl font-mono font-bold" id="resDomain">---</p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Domaine Audité</p>
-                    <p class="text-3xl font-mono font-bold text-white leading-none" id="resDomain">---</p>
-                    <p class="text-xs text-slate-500 mt-2" id="resDate">--/--/----</p>
-                </div>
-            </div>
 
-            <div class="p-14 space-y-10">
-                <div class="flex items-center gap-10 bg-slate-50 p-10 rounded-[2rem] border border-slate-100">
+                <div class="flex items-center gap-8 bg-slate-50 p-8 rounded-2xl border border-slate-100">
                     <div class="text-center">
-                        <div class="text-7xl font-black leading-none" id="resScore">0%</div>
-                        <div id="resBadge" class="mt-4 text-[9px] font-black px-6 py-2 rounded-full uppercase tracking-widest">Calcul...</div>
+                        <div class="text-6xl font-black" id="resScore">0%</div>
+                        <div id="resBadge" class="mt-2 text-[9px] font-black px-4 py-1 rounded-full uppercase">---</div>
                     </div>
-                    <div class="border-l border-slate-200 pl-10">
-                        <h3 class="font-black text-slate-900 uppercase text-xs tracking-widest mb-3">Diagnostic de Résilience</h3>
-                        <p class="text-xs text-slate-500 leading-relaxed font-medium">
-                            Ce score technique mesure la solidité de votre configuration DNS face aux tentatives d'usurpation d'identité et de fraude par email.
-                        </p>
+                    <div class="border-l border-slate-200 pl-8">
+                        <h3 class="font-bold text-slate-900 uppercase text-xs mb-1">Diagnostic de Résilience</h3>
+                        <p class="text-[11px] text-slate-500 leading-relaxed italic">Ce score mesure la solidité de votre configuration DNS face à l'usurpation d'identité.</p>
                     </div>
                 </div>
 
-                <div class="space-y-8">
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center">
-                        <span class="w-8 h-[1px] bg-blue-600 mr-3"></span> Expertise des Protocoles
-                    </h3>
+                <div class="space-y-4">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-600">Expertise des Protocoles</h3>
                     
-                    <div class="grid grid-cols-1 gap-6 text-slate-900">
-                        <div class="p-8 border border-slate-100 rounded-2xl shadow-sm space-y-4">
-                            <div class="flex justify-between items-start">
-                                <div class="flex gap-4 items-center">
-                                    <div id="spfDot" class="h-3 w-3 rounded-full bg-slate-200"></div>
-                                    <h4 class="font-bold text-sm uppercase">Authentification SPF</h4>
-                                </div>
-                                <i id="iconSPF" class="fas fa-shield text-slate-200 text-xl"></i>
-                            </div>
-                            <p class="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
-                                <strong>C'est quoi ?</strong> Le SPF est la liste blanche de vos serveurs autorisés. <br>
-                                <strong>Le risque :</strong> Sans SPF, un pirate peut envoyer des mails "officiels" en votre nom.
-                            </p>
-                            <p id="resSPF" class="text-xs font-bold text-blue-600">Analyse en cours...</p>
+                    <div class="p-6 border border-slate-100 rounded-xl bg-white shadow-sm space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-sm text-slate-800 uppercase flex items-center gap-2">
+                                <i id="iconSPF" class="fas fa-circle-info"></i> Authentification SPF
+                            </h4>
                         </div>
+                        <p class="text-[10px] text-slate-600 bg-slate-50 p-3 rounded-lg leading-relaxed">
+                            <strong>Le principe :</strong> Liste blanche de vos serveurs autorisés. <br>
+                            <strong>Le risque :</strong> Sans SPF, un pirate peut envoyer des mails "officiels" en votre nom.
+                        </p>
+                        <p id="resSPF" class="text-xs font-bold text-blue-600">Analyse...</p>
+                    </div>
 
-                        <div class="p-8 border border-slate-100 rounded-2xl shadow-sm space-y-4 text-slate-900">
-                            <div class="flex justify-between items-start">
-                                <div class="flex gap-4 items-center">
-                                    <div id="dmarcDot" class="h-3 w-3 rounded-full bg-slate-200"></div>
-                                    <h4 class="font-bold text-sm uppercase text-slate-900">Protection DMARC</h4>
-                                </div>
-                                <i id="iconDMARC" class="fas fa-fingerprint text-slate-200 text-xl"></i>
-                            </div>
-                            <p class="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
-                                <strong>C'est quoi ?</strong> C'est votre "garde du corps" qui ordonne de rejeter les mails fraudeurs. <br>
-                                <strong>Le risque :</strong> Sans DMARC, les filtres anti-spam ne savent pas comment vous protéger.
-                            </p>
-                            <p id="resDMARC" class="text-xs font-bold text-blue-600">Analyse en cours...</p>
+                    <div class="p-6 border border-slate-100 rounded-xl bg-white shadow-sm space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-sm text-slate-800 uppercase flex items-center gap-2">
+                                <i id="iconDMARC" class="fas fa-circle-info"></i> Protection DMARC
+                            </h4>
                         </div>
+                        <p class="text-[10px] text-slate-600 bg-slate-50 p-3 rounded-lg leading-relaxed">
+                            <strong>Le principe :</strong> Gilet pare-balles de votre domaine mail. <br>
+                            <strong>Le risque :</strong> Sans DMARC, les emails frauduleux arrivent directement dans la boîte de vos clients.
+                        </p>
+                        <p id="resDMARC" class="text-xs font-bold text-blue-600">Analyse...</p>
                     </div>
                 </div>
 
-                <div class="bg-blue-900 text-white p-10 rounded-[2rem] space-y-4">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-blue-300">Comment corriger ces failles ?</h3>
-                    <p class="text-[11px] opacity-90 leading-relaxed">
-                        Contactez votre prestataire informatique ou votre hébergeur web et demandez-lui : 
-                        <span class="block mt-2 font-mono bg-black/20 p-2 rounded italic text-[10px]">
-                            "Veuillez configurer les enregistrements DNS SPF et la politique DMARC (p=quarantine) pour sécuriser nos flux emails."
+                <div class="bg-blue-900 text-white p-8 rounded-2xl shadow-xl">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-300 mb-2">Solution technique</h3>
+                    <p class="text-[10px] opacity-90 leading-relaxed italic">
+                        Contactez votre hébergeur ou informaticien et transmettez-lui : <br>
+                        <span class="block mt-2 font-mono bg-white/10 p-2 rounded text-blue-100">
+                            "Veuillez configurer les entrées DNS SPF et la politique DMARC (p=quarantine) pour protéger notre domaine."
                         </span>
                     </p>
                 </div>
+            </div>
 
-                <div class="pt-10">
-                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 mb-8 flex items-center gap-4">
-                        PLAN DE RÉSILIENCE OPÉRATIONNELLE <span class="h-[1px] bg-emerald-200 flex-1"></span>
-                    </h3>
-                    
-                    <div class="grid grid-cols-2 gap-8 mb-8">
-                        <div class="flex gap-5 items-start p-6 rounded-2xl bg-emerald-50/50">
-                            <div class="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold">1</div>
-                            <div>
-                                <h5 class="text-xs font-black text-slate-900 uppercase mb-2">Double Authentification (MFA)</h5>
-                                <p class="text-[11px] text-slate-500 leading-relaxed">Indispensable : un mot de passe volé devient inutile sans validation sur smartphone.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-5 items-start p-6 rounded-2xl bg-emerald-50/50">
-                            <div class="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold">2</div>
-                            <div>
-                                <h5 class="text-xs font-black text-slate-900 uppercase mb-2">Mises à Jour Systèmes</h5>
-                                <p class="text-[11px] text-slate-500 leading-relaxed">Appliquer les correctifs Windows/Mac sous 48h pour fermer les portes aux pirates.</p>
-                            </div>
-                        </div>
+            <div class="p-10 space-y-8 page-break">
+                <h3 class="text-xs font-black uppercase tracking-widest text-emerald-600 border-l-4 border-emerald-500 pl-4">Plan de Résilience Opérationnelle</h3>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="p-5 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <h5 class="text-[10px] font-black text-slate-900 uppercase mb-2">01. Double Authentification (MFA)</h5>
+                        <p class="text-[10px] text-slate-500 leading-relaxed">Activez le MFA sur vos comptes bancaires et mails. Un mot de passe volé devient inutile sans validation sur mobile.</p>
                     </div>
+                    <div class="p-5 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <h5 class="text-[10px] font-black text-slate-900 uppercase mb-2">02. Mises à Jour</h5>
+                        <p class="text-[10px] text-slate-500 leading-relaxed">Appliquer les correctifs Windows/Mac sous 48h pour fermer les portes d'entrée aux cybercriminels.</p>
+                    </div>
+                </div>
 
-                    <div class="bg-slate-900 text-white p-8 rounded-[2rem] relative overflow-hidden">
-                        <h4 class="text-xs font-black uppercase tracking-widest text-emerald-400 mb-4">La Règle de Sauvegarde 3-2-1</h4>
-                        <div class="grid grid-cols-3 gap-6 text-center">
-                            <div class="space-y-2">
-                                <div class="text-2xl font-black text-emerald-500">3</div>
-                                <p class="text-[10px] uppercase font-bold">Copies</p>
-                                <p class="text-[9px] text-slate-400">Original + 2 sauvegardes.</p>
-                            </div>
-                            <div class="space-y-2 border-x border-slate-700 px-4">
-                                <div class="text-2xl font-black text-emerald-500">2</div>
-                                <p class="text-[10px] uppercase font-bold">Supports</p>
-                                <p class="text-[9px] text-slate-400">Disque Local + Cloud.</p>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-2xl font-black text-emerald-500">1</div>
-                                <p class="text-[10px] uppercase font-bold">Hors-Ligne</p>
-                                <p class="text-[9px] text-slate-400">Déconnecté du réseau.</p>
-                            </div>
+                <div class="bg-slate-900 text-white p-8 rounded-2xl relative overflow-hidden shadow-2xl">
+                    <div class="absolute top-0 right-0 p-6 opacity-10"><i class="fas fa-database text-6xl"></i></div>
+                    <h4 class="text-xs font-black uppercase tracking-widest text-emerald-400 mb-6">Stratégie de Sauvegarde : La Règle du 3-2-1</h4>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="space-y-1">
+                            <div class="text-3xl font-black text-emerald-500">3</div>
+                            <p class="text-[9px] uppercase font-bold text-white">Copies</p>
+                            <p class="text-[8px] text-slate-400">Original + 2 sauvegardes.</p>
+                        </div>
+                        <div class="space-y-1 border-x border-slate-700">
+                            <div class="text-3xl font-black text-emerald-500">2</div>
+                            <p class="text-[9px] uppercase font-bold text-white">Supports</p>
+                            <p class="text-[8px] text-slate-400">Disque dur + Cloud.</p>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="text-3xl font-black text-emerald-500">1</div>
+                            <p class="text-[9px] uppercase font-bold text-white">Hors-Ligne</p>
+                            <p class="text-[8px] text-slate-400">Débranché du réseau.</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="absolute bottom-0 w-full p-10 border-t border-slate-100 bg-slate-50 text-[9px] text-slate-400 flex justify-between uppercase font-bold tracking-widest">
-                <span>Rapport CyberScan Pro v2.0</span>
-                <span>Analyse Non-Intrusive</span>
+                <div class="text-[8px] text-slate-400 text-center uppercase tracking-[0.4em] pt-10">Rapport CyberScan Pro v2.1 // Sécurité TPE</div>
             </div>
         </div>
     </div>
 
     <script>
-        const terminalLogs = [
-            "INITIALIZING SECURE HANDSHAKE...",
-            "QUERYING GOOGLE CLOUD DNS API...",
-            "PARSING SPF AUTHENTICATION DATA...",
-            "VERIFYING DMARC ENFORCEMENT POLICY...",
-            "CHECKING SSL CERTIFICATE CHAIN...",
-            "GENERATING EXECUTIVE SUMMARY...",
-            "FINALIZING PDF ASSETS..."
-        ];
-
-        async function startAnalysisSequence() {
+        async function startAnalysis() {
             const domain = document.getElementById('domainInput').value.trim();
-            if(!domain) return alert("Veuillez saisir un domaine.");
-
+            if(!domain) return;
+            
             document.getElementById('setup-view').classList.add('hidden');
             document.getElementById('loading-view').classList.remove('hidden');
 
-            const term = document.getElementById('terminal-logs');
-            for(let log of terminalLogs) {
-                const p = document.createElement('p');
-                p.innerHTML = `<span class="text-blue-500">></span> ${log}`;
-                term.appendChild(p);
-                term.scrollTop = term.scrollHeight;
-                await new Promise(r => setTimeout(r, 600));
-            }
-
-            await runAudit(domain);
-
-            setTimeout(() => {
-                document.getElementById('loading-view').classList.add('hidden');
-                document.getElementById('report-view').style.display = 'block';
-            }, 500);
-        }
-
-        async function runAudit(domain) {
-            document.getElementById('resDomain').innerText = domain.toUpperCase();
-            document.getElementById('resDate').innerText = new Date().toLocaleDateString('fr-FR');
-
+            // Audit DNS réel
             let score = 0;
             const res = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
             const data = await res.json();
@@ -293,49 +208,39 @@
             if(hasSPF) score += 50;
             if(hasDMARC) score += 50;
 
-            updateUIModule('spf', hasSPF, hasSPF ? "SPF Valide." : "SPF Absent.");
-            updateUIModule('dmarc', hasDMARC, hasDMARC ? "DMARC Actif." : "DMARC Manquant.");
+            // Mise à jour rapport
+            document.getElementById('resDomain').innerText = domain.toUpperCase();
+            document.getElementById('resScore').innerText = score + "%";
+            document.getElementById('resScore').className = `text-6xl font-black ${score >= 100 ? 'text-emerald-600' : 'text-red-600'}`;
+            document.getElementById('resBadge').innerText = score >= 100 ? "SÉCURISÉ" : "VULNÉRABLE";
+            document.getElementById('resBadge').className = `mt-2 text-[9px] font-black px-4 py-1 rounded-full uppercase ${score >= 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`;
 
-            const scoreEl = document.getElementById('resScore');
-            scoreEl.innerText = score + "%";
-            scoreEl.className = `text-7xl font-black ${score >= 100 ? 'text-emerald-600' : 'text-red-600'}`;
+            document.getElementById('resSPF').innerText = hasSPF ? "Protocole actif et conforme." : "SPF Absent. Risque d'usurpation élevé.";
+            document.getElementById('iconSPF').className = hasSPF ? "fas fa-check-circle text-emerald-500" : "fas fa-exclamation-triangle text-red-500";
             
-            const badge = document.getElementById('resBadge');
-            badge.innerText = score >= 100 ? "SÉCURISÉ" : "VULNÉRABLE";
-            badge.className = `mt-4 text-[9px] font-black px-6 py-2 rounded-full uppercase ${score >= 100 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
-        }
+            document.getElementById('resDMARC').innerText = hasDMARC ? "Politique de protection active." : "DMARC Manquant. Protection contre la fraude nulle.";
+            document.getElementById('iconDMARC').className = hasDMARC ? "fas fa-check-circle text-emerald-500" : "fas fa-exclamation-triangle text-red-500";
 
-        function updateUIModule(id, success, msg) {
-            document.getElementById(`${id}Dot`).className = `h-3 w-3 rounded-full ${success ? 'bg-emerald-500' : 'bg-red-500'}`;
-            document.getElementById(`icon${id.toUpperCase()}`).className = success ? "fas fa-check-circle text-emerald-500 text-xl" : "fas fa-exclamation-triangle text-red-500 text-xl";
-            document.getElementById(`res${id.toUpperCase()}`).innerText = msg;
-            if(!success) document.getElementById(`res${id.toUpperCase()}`).className = "text-xs font-bold text-red-600";
-        }
-
-        function checkPassLocal() {
-            const p = document.getElementById('passInput').value;
-            const b = document.getElementById('passBar');
-            b.style.width = Math.min(100, p.length * 10) + "%";
-            b.className = `h-full transition-all duration-500 ${p.length < 8 ? 'bg-red-500' : 'bg-emerald-500'}`;
-        }
-
-        function checkEmailSimple() {
-            const em = document.getElementById('emailInput').value;
-            if(!em) return;
-            document.getElementById('emailStatus').innerText = "Analyse en cours...";
             setTimeout(() => {
-                document.getElementById('emailStatus').innerHTML = `<span class='text-emerald-400'>${em}</span> : Aucune fuite majeure détectée publiquement.`;
-            }, 1000);
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('report-view').style.display = 'block';
+            }, 2500);
+        }
+
+        function checkPass() {
+            const p = document.getElementById('passInput').value;
+            document.getElementById('passBar').style.width = Math.min(100, p.length * 10) + "%";
         }
 
         function exportToPDF() {
             const element = document.getElementById('report-content');
             html2pdf().set({
-                margin: 0,
+                margin: [0, 0],
                 filename: `Audit_Cyber_${document.getElementById('resDomain').innerText}.pdf`,
                 image: { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 3 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
             }).from(element).save();
         }
     </script>

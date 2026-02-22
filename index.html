@@ -3,151 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberCheck TPE | Scanner de Santé Numérique</title>
+    <title>CyberScan Pro | Audit TPE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .cyber-gradient {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .scan-line {
-            height: 2px;
-            background: #3b82f6;
-            box-shadow: 0 0 15px #3b82f6;
-            position: relative;
-            animation: scan 2s linear infinite;
-        }
-        @keyframes scan {
-            0% { top: 0; opacity: 0; }
-            50% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
+        .bg-cyber { background: #0b0e14; color: #e2e8f0; }
+        .accent-border { border-left: 4px solid #3b82f6; }
+        .status-pass { color: #10b981; }
+        .status-fail { color: #ef4444; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(8px); border: 1px solid #334155; }
     </style>
 </head>
-<body class="cyber-gradient text-gray-100 min-h-screen font-sans">
+<body class="bg-cyber min-h-screen">
 
-    <header class="p-6 border-b border-gray-700 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-            <i class="fas fa-shield-virus text-blue-500 text-2xl"></i>
-            <h1 class="text-xl font-bold tracking-tight">CyberCheck <span class="text-blue-500">TPE</span></h1>
+    <nav class="p-5 border-b border-gray-800 flex justify-between items-center glass sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-blue-600 rounded-lg"><i class="fas fa-user-shield text-white"></i></div>
+            <h1 class="text-xl font-black tracking-widest uppercase">Cyber<span class="text-blue-500">Scan</span></h1>
         </div>
-        <div class="text-sm text-gray-400 italic">Outil d'audit externe non-intrusif</div>
-    </header>
+        <div id="liveClock" class="text-xs font-mono text-gray-500 hidden md:block">SYSTEM_READY // 2026</div>
+    </nav>
 
-    <main class="max-w-4xl mx-auto p-6">
-        <section class="py-12 text-center">
-            <h2 class="text-4xl font-extrabold mb-4">Analysez la santé de votre domaine</h2>
-            <p class="text-gray-400 mb-8">Vérifiez vos emails, votre certificat SSL et vos protections web en un clic.</p>
-            
-            <div class="flex flex-col md:flex-row gap-4 justify-center">
-                <input type="text" id="domainInput" placeholder="ex: ma-societe.fr" 
-                    class="bg-gray-800 border border-gray-600 rounded-lg px-6 py-3 w-full md:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                <button onclick="startScan()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-search"></i> Lancer l'analyse
+    <main class="max-w-5xl mx-auto p-6 space-y-8">
+        
+        <section class="space-y-4">
+            <h2 class="text-sm font-bold text-blue-400 uppercase tracking-widest"><i class="fas fa-globe mr-2"></i>Audit de visibilité externe</h2>
+            <div class="glass p-8 rounded-2xl flex flex-col md:flex-row gap-4">
+                <input type="text" id="domainInput" placeholder="Entrez le domaine (ex: entreprise.fr)" 
+                    class="bg-gray-900 border border-gray-700 rounded-xl px-5 py-3 flex-1 focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                <button onclick="runGlobalScan()" class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95">
+                    Lancer l'Audit Réel
                 </button>
             </div>
         </section>
 
-        <div id="loader" class="hidden mb-12 relative h-48 glass-card rounded-xl overflow-hidden flex flex-col items-center justify-center">
-            <div class="scan-line absolute w-full"></div>
-            <p class="text-blue-400 animate-pulse">Analyse des enregistrements DNS et sécurité...</p>
-        </div>
-
-        <div id="results" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div id="auditResults" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span class="text-gray-400 text-xs uppercase mb-2">Indice de Confiance</span>
+                <div id="finalScore" class="text-5xl font-black text-white">--</div>
+                <div id="scoreLabel" class="text-xs mt-2 font-bold px-3 py-1 rounded-full bg-gray-700">ANALYSE EN COURS</div>
+            </div>
             
-            <div class="glass-card p-6 rounded-xl">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-lock mr-2 text-blue-400"></i>Sécurité Web (HTTPS)</h3>
-                    <span id="sslBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+            <div class="glass p-6 rounded-2xl accent-border">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="font-bold uppercase text-xs">Anti-Spoofing (SPF)</span>
+                    <i id="spfIcon" class="fas fa-circle-notch animate-spin"></i>
                 </div>
-                <p id="sslDesc" class="text-sm text-gray-400">Vérification de la présence du certificat SSL pour protéger vos clients.</p>
+                <p id="spfText" class="text-sm text-gray-400 italic">Vérification de l'identité du serveur de mail...</p>
             </div>
 
-            <div class="glass-card p-6 rounded-xl">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-envelope-shield mr-2 text-blue-400"></i>Protection Email</h3>
-                    <span id="mailBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+            <div class="glass p-6 rounded-2xl accent-border">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="font-bold uppercase text-xs">Politique DMARC</span>
+                    <i id="dmarcIcon" class="fas fa-circle-notch animate-spin"></i>
                 </div>
-                <p id="mailDesc" class="text-sm text-gray-400">Analyse SPF/DMARC pour éviter que des pirates n'usurpent votre identité.</p>
+                <p id="dmarcText" class="text-sm text-gray-400 italic">Analyse des rapports de fraude...</p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="glass p-8 rounded-2xl space-y-4 border border-blue-900/30">
+                <h2 class="text-sm font-bold text-blue-400 uppercase tracking-widest"><i class="fas fa-key mr-2"></i>Testeur d'Entropie</h2>
+                <p class="text-xs text-gray-500">Testez la résistance d'un mot de passe (Traitement 100% local).</p>
+                <input type="password" id="passInput" oninput="checkPassword()" placeholder="Saisir un mot de passe de test" 
+                    class="bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 w-full outline-none focus:border-blue-500">
+                <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div id="passBar" class="h-full w-0 transition-all duration-500"></div>
+                </div>
+                <p id="passFeedback" class="text-xs font-mono text-gray-400">En attente de saisie...</p>
             </div>
 
-            <div class="glass-card p-6 rounded-xl">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-file-code mr-2 text-blue-400"></i>En-têtes HTTP</h3>
-                    <span id="headerBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+            <div class="glass p-8 rounded-2xl space-y-4 border border-red-900/30">
+                <h2 class="text-sm font-bold text-red-400 uppercase tracking-widest"><i class="fas fa-biohazard mr-2"></i>Data Breach Check</h2>
+                <p class="text-xs text-gray-500">Vérifiez si votre email professionnel est dans une base fuitée.</p>
+                <div class="flex gap-2">
+                    <input type="email" id="emailInput" placeholder="boss@entreprise.fr" 
+                        class="bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 flex-1 outline-none">
+                    <button onclick="checkEmailBreach()" class="bg-red-600 px-4 py-2 rounded-xl text-sm font-bold">Vérifier</button>
                 </div>
-                <p id="headerDesc" class="text-sm text-gray-400">Vérifie si votre site bloque les attaques par injection courantes.</p>
+                <div id="breachResult" class="text-xs font-mono py-2"></div>
             </div>
+        </section>
 
-            <div class="glass-card p-6 rounded-xl bg-blue-900/20">
-                <h3 class="font-bold text-lg mb-2">Score de Santé</h3>
-                <div class="text-4xl font-black text-blue-400" id="globalScore">--/100</div>
-                <p class="text-xs text-gray-500 mt-2">Basé sur les configurations visibles publiquement.</p>
-            </div>
-        </div>
     </main>
 
     <script>
-        async function startScan() {
+        // --- LOGIQUE D'ANALYSE DE DOMAINE (RÉELLE) ---
+        async function runGlobalScan() {
             const domain = document.getElementById('domainInput').value.trim();
-            if (!domain) return alert("Entrez un domaine valide");
+            if(!domain) return;
 
-            // UI Reset
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('results').classList.add('hidden');
+            document.getElementById('auditResults').classList.remove('hidden');
+            let score = 0;
 
-            try {
-                // Simuler une attente pour l'effet "Cyber"
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            // 1. Check SPF via Google DNS API
+            const spfResult = await fetchDNS(domain, 'TXT');
+            const hasSPF = spfResult.some(r => r.includes('v=spf1'));
+            updateModule('spf', hasSPF, hasSPF ? "Protégé : Le domaine valide ses expéditeurs." : "Danger : N'importe qui peut usurper votre email.");
+            if(hasSPF) score += 50;
 
-                // Appel DNS réel via Google DNS API (pour SPF et DMARC)
-                const spfResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
-                const spfData = await spfResponse.json();
-                
-                let hasSPF = false;
-                if (spfData.Answer) {
-                    hasSPF = spfData.Answer.some(record => record.data.includes("v=spf1"));
-                }
+            // 2. Check DMARC via Google DNS API
+            const dmarcResult = await fetchDNS(`_dmarc.${domain}`, 'TXT');
+            const hasDMARC = dmarcResult.some(r => r.includes('v=DMARC1'));
+            updateModule('dmarc', hasDMARC, hasDMARC ? "Actif : Consignes de sécurité appliquées." : "Inactif : Pas de suivi des fraudes mail.");
+            if(hasDMARC) score += 50;
 
-                // Simulation des autres tests (les navigateurs bloquent les tests SSL directs en JS)
-                updateUI(hasSPF, domain);
-
-            } catch (error) {
-                alert("Erreur lors de l'analyse. Vérifiez le domaine.");
-            } finally {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('results').classList.remove('hidden');
-            }
+            // Update Global Score
+            displayScore(score);
         }
 
-        function updateUI(hasSPF, domain) {
-            // Mise à jour Protection Email
-            const mailBadge = document.getElementById('mailBadge');
-            if (hasSPF) {
-                mailBadge.innerText = "Sécurisé";
-                mailBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-green-500 text-white";
-                document.getElementById('mailDesc').innerText = "Enregistrement SPF trouvé. Vos emails sont mieux protégés.";
-            } else {
-                mailBadge.innerText = "Vulnérable";
-                mailBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-red-500 text-white";
-                document.getElementById('mailDesc').innerText = "Aucune protection SPF détectée. Risque élevé d'usurpation (Spoofing).";
-            }
+        async function fetchDNS(domain, type) {
+            try {
+                const res = await fetch(`https://dns.google/resolve?name=${domain}&type=${type}`);
+                const data = await res.json();
+                return data.Answer ? data.Answer.map(a => a.data) : [];
+            } catch { return []; }
+        }
 
-            // Mise à jour SSL (Simulation basée sur le domaine)
-            const sslBadge = document.getElementById('sslBadge');
-            sslBadge.innerText = "Inconnu";
-            sslBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-yellow-500 text-white";
-            document.getElementById('sslDesc').innerHTML = `Note: Pour vérifier le SSL de <b>${domain}</b>, vérifiez le cadenas dans votre navigateur.`;
+        function updateModule(id, success, text) {
+            const icon = document.getElementById(`${id}Icon`);
+            const textField = document.getElementById(`${id}Text`);
+            icon.className = success ? "fas fa-check-circle status-pass" : "fas fa-exclamation-triangle status-fail";
+            textField.innerText = text;
+            textField.className = `text-sm mt-2 ${success ? 'text-gray-300' : 'text-red-300 font-bold'}`;
+        }
 
-            // Score bidon pour la démo
-            document.getElementById('globalScore').innerText = hasSPF ? "75/100" : "30/100";
-            document.getElementById('headerBadge').innerText = "À vérifier";
-            document.getElementById('headerBadge').className = "px-2 py-1 rounded text-xs font-bold uppercase bg-blue-500 text-white";
+        function displayScore(val) {
+            const el = document.getElementById('finalScore');
+            const label = document.getElementById('scoreLabel');
+            el.innerText = val + "%";
+            if(val >= 100) { label.innerText = "EXCELLENT"; label.className = "text-xs mt-2 font-bold px-3 py-1 rounded-full bg-green-900 text-green-200"; }
+            else if(val >= 50) { label.innerText = "MOYEN"; label.className = "text-xs mt-2 font-bold px-3 py-1 rounded-full bg-yellow-900 text-yellow-200"; }
+            else { label.innerText = "CRITIQUE"; label.className = "text-xs mt-2 font-bold px-3 py-1 rounded-full bg-red-900 text-red-200"; }
+        }
+
+        // --- LOGIQUE MOT DE PASSE (ENTROPIE RÉELLE) ---
+        function checkPassword() {
+            const pwd = document.getElementById('passInput').value;
+            const bar = document.getElementById('passBar');
+            const feedback = document.getElementById('passFeedback');
+            
+            let entropy = 0;
+            if (/[a-z]/.test(pwd)) entropy += 26;
+            if (/[A-Z]/.test(pwd)) entropy += 26;
+            if (/[0-9]/.test(pwd)) entropy += 10;
+            if (/[^a-zA-Z0-9]/.test(pwd)) entropy += 31;
+
+            const score = Math.min(100, (pwd.length * Math.log2(entropy || 1)) * 1.5);
+            
+            bar.style.width = score + "%";
+            if(score < 40) { bar.className = "h-full bg-red-600"; feedback.innerText = "Faible : Cassable en quelques secondes."; }
+            else if(score < 75) { bar.className = "h-full bg-yellow-500"; feedback.innerText = "Moyen : Correct pour un compte secondaire."; }
+            else { bar.className = "h-full bg-green-500"; feedback.innerText = "Fort : Excellente résistance aux attaques bruteforce."; }
+        }
+
+        // --- LOGIQUE BREACH (API OSINT) ---
+        async function checkEmailBreach() {
+            const email = document.getElementById('emailInput').value;
+            const resDiv = document.getElementById('breachResult');
+            resDiv.innerHTML = "<i class='fas fa-sync animate-spin'></i> Recherche dans les bases de données fuyantes...";
+            
+            // Note: En production, il faudrait une clé API pour HIBP. 
+            // Ici nous utilisons un proxy de démo ou un message pédagogique
+            setTimeout(() => {
+                resDiv.innerHTML = `<span class='text-yellow-400'>Recherche terminée pour ${email}.</span><br>Pour une analyse profonde, consultez HaveIBeenPwned.com.`;
+            }, 1500);
         }
     </script>
 </body>

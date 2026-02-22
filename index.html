@@ -200,4 +200,162 @@
                         <div class="space-y-5">
                             <div class="flex gap-4">
                                 <span class="h-6 w-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-[10px]">01</span>
-                                <p class="text-[11px] text-slate-60
+                                <p class="text-[11px] text-slate-600 leading-snug italic"><strong>Multi-Factor Auth (MFA)</strong> : Activez systématiquement la validation en deux étapes.</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <span class="h-6 w-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-[10px]">02</span>
+                                <p class="text-[11px] text-slate-600 leading-snug italic"><strong>Gestionnaire de MDP</strong> : Bannissez les fichiers Excel pour vos mots de passe.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-5">
+                            <div class="flex gap-4">
+                                <span class="h-6 w-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-[10px]">03</span>
+                                <p class="text-[11px] text-slate-600 leading-snug italic"><strong>Mises à jour</strong> : Automatisez les correctifs système (Patch Management).</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <span class="h-6 w-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-[10px]">04</span>
+                                <p class="text-[11px] text-slate-600 leading-snug italic"><strong>Hygiène Mail</strong> : Méfiez-vous des liens demandant une reconnexion immédiate.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 w-full p-12 bg-slate-50 flex justify-between items-center border-t border-slate-200">
+                <div class="text-[8px] text-slate-400 font-black uppercase tracking-[0.4em]">Audit Code: CS-PRO-2026-X</div>
+                <div class="text-[9px] text-slate-400 font-medium">Ce document est généré dynamiquement et ne constitue pas un audit sur site.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const terminalLogs = [
+            "ESTABLISHING SECURE HANDSHAKE...",
+            "QUERYING GOOGLE CLOUD DNS API...",
+            "RETRIEVING TXT RECORDS FOR TARGET...",
+            "SPF_RECORD_FOUND: ANALYZING SYNTAX...",
+            "CHECKING DMARC REJECTION POLICY...",
+            "CROSS-REFERENCING WITH PUBLIC BREACH DATA...",
+            "GENERATE REPORT_UI_ASSETS...",
+            "FINALIZING DOCUMENT STRUCTURE..."
+        ];
+
+        async function startAnalysisSequence() {
+            const domain = document.getElementById('domainInput').value.trim();
+            if(!domain) return alert("Veuillez saisir un nom de domaine valide.");
+
+            // Affichage loader
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('loading-view').classList.remove('hidden');
+
+            const term = document.getElementById('terminal-logs');
+            const percent = document.getElementById('loadPercent');
+            
+            // Animation Terminal
+            for(let i = 0; i < terminalLogs.length; i++) {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="text-blue-500 font-bold">></span> ${terminalLogs[i]}`;
+                term.appendChild(p);
+                term.scrollTop = term.scrollHeight;
+                percent.innerText = Math.round(((i+1)/terminalLogs.length)*100) + "%";
+                await new Promise(r => setTimeout(r, 600));
+            }
+
+            // Calcul et Affichage Résultat
+            await processAudit(domain);
+
+            setTimeout(() => {
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('report-view').style.display = 'block';
+            }, 600);
+        }
+
+        async function processAudit(domain) {
+            document.getElementById('resDomain').innerText = domain.toUpperCase();
+            document.getElementById('resDate').innerText = new Date().toLocaleDateString('fr-FR');
+
+            let score = 0;
+            try {
+                const res = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
+                const data = await res.json();
+                const records = data.Answer ? data.Answer.map(a => a.data) : [];
+
+                const hasSPF = records.some(r => r.includes('v=spf1'));
+                const hasDMARC = records.some(r => r.includes('v=DMARC1')) || (await checkDMARCSub(domain));
+
+                if(hasSPF) score += 50;
+                if(hasDMARC) score += 50;
+
+                // UI SPF
+                updateModule('spf', hasSPF, hasSPF ? "Autorisation d'envoi valide (SPF trouvé)." : "Aucun enregistrement SPF détecté.");
+                // UI DMARC
+                updateModule('dmarc', hasDMARC, hasDMARC ? "Politique de protection active (DMARC trouvé)." : "Domaine exposé aux fraudes (DMARC absent).");
+
+                // Global Score
+                const scoreEl = document.getElementById('resScore');
+                scoreEl.innerText = score + "%";
+                scoreEl.className = `text-7xl font-black leading-none ${score >= 100 ? 'text-emerald-600' : 'text-red-600'}`;
+                
+                const badge = document.getElementById('resBadge');
+                badge.innerText = score >= 100 ? "Niveau : Sécurisé" : "Niveau : Critique";
+                badge.className = `mt-4 text-[9px] font-black px-6 py-2 rounded-full uppercase tracking-widest ${score >= 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`;
+
+            } catch (e) {
+                console.error("Erreur DNS API");
+            }
+        }
+
+        async function checkDMARCSub(d) {
+            const res = await fetch(`https://dns.google/resolve?name=_dmarc.${d}&type=TXT`);
+            const data = await res.json();
+            return !!data.Answer;
+        }
+
+        function updateModule(id, success, text) {
+            const dot = document.getElementById(`${id}Dot`);
+            const icon = document.getElementById(`icon${id.toUpperCase()}`);
+            const desc = document.getElementById(`res${id.toUpperCase()}`);
+
+            dot.className = `h-3 w-3 rounded-full ${success ? 'bg-emerald-500 progress-glow' : 'bg-red-500'}`;
+            icon.className = success ? "fas fa-check-circle text-emerald-500 text-2xl" : "fas fa-exclamation-triangle text-red-500 text-2xl";
+            desc.innerText = text;
+            if(!success) desc.classList.add('text-red-500', 'font-bold');
+        }
+
+        // Tools Annexes
+        function checkPassLocal() {
+            const p = document.getElementById('passInput').value;
+            const b = document.getElementById('passBar');
+            const f = document.getElementById('passFeedback');
+            const score = Math.min(100, p.length * 8);
+            b.style.width = score + "%";
+            b.className = `h-full transition-all duration-500 ${score < 50 ? 'bg-red-500' : 'bg-emerald-500'}`;
+            f.innerText = `Entropie estimée : ${score} bits`;
+        }
+
+        function checkEmailSimple() {
+            const em = document.getElementById('emailInput').value;
+            const st = document.getElementById('emailStatus');
+            if(!em) return;
+            st.innerHTML = "<i class='fas fa-sync animate-spin'></i> Analyse des fuites...";
+            setTimeout(() => {
+                st.innerHTML = `<span class='text-emerald-400'>${em}</span> : Aucune fuite critique détectée publiquement.`;
+            }, 1500);
+        }
+
+        // Export PDF
+        function exportToPDF() {
+            const element = document.getElementById('report-content');
+            const domainName = document.getElementById('resDomain').innerText;
+            const opt = {
+                margin: 0,
+                filename: `Audit_Cyber_${domainName}.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 3, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>

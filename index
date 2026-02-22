@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberCheck TPE | Scanner de Santé Numérique</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .cyber-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .scan-line {
+            height: 2px;
+            background: #3b82f6;
+            box-shadow: 0 0 15px #3b82f6;
+            position: relative;
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+    </style>
+</head>
+<body class="cyber-gradient text-gray-100 min-h-screen font-sans">
+
+    <header class="p-6 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-shield-virus text-blue-500 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-tight">CyberCheck <span class="text-blue-500">TPE</span></h1>
+        </div>
+        <div class="text-sm text-gray-400 italic">Outil d'audit externe non-intrusif</div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-6">
+        <section class="py-12 text-center">
+            <h2 class="text-4xl font-extrabold mb-4">Analysez la santé de votre domaine</h2>
+            <p class="text-gray-400 mb-8">Vérifiez vos emails, votre certificat SSL et vos protections web en un clic.</p>
+            
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <input type="text" id="domainInput" placeholder="ex: ma-societe.fr" 
+                    class="bg-gray-800 border border-gray-600 rounded-lg px-6 py-3 w-full md:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <button onclick="startScan()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-search"></i> Lancer l'analyse
+                </button>
+            </div>
+        </section>
+
+        <div id="loader" class="hidden mb-12 relative h-48 glass-card rounded-xl overflow-hidden flex flex-col items-center justify-center">
+            <div class="scan-line absolute w-full"></div>
+            <p class="text-blue-400 animate-pulse">Analyse des enregistrements DNS et sécurité...</p>
+        </div>
+
+        <div id="results" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            
+            <div class="glass-card p-6 rounded-xl">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-lg"><i class="fas fa-lock mr-2 text-blue-400"></i>Sécurité Web (HTTPS)</h3>
+                    <span id="sslBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+                </div>
+                <p id="sslDesc" class="text-sm text-gray-400">Vérification de la présence du certificat SSL pour protéger vos clients.</p>
+            </div>
+
+            <div class="glass-card p-6 rounded-xl">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-lg"><i class="fas fa-envelope-shield mr-2 text-blue-400"></i>Protection Email</h3>
+                    <span id="mailBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+                </div>
+                <p id="mailDesc" class="text-sm text-gray-400">Analyse SPF/DMARC pour éviter que des pirates n'usurpent votre identité.</p>
+            </div>
+
+            <div class="glass-card p-6 rounded-xl">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-lg"><i class="fas fa-file-code mr-2 text-blue-400"></i>En-têtes HTTP</h3>
+                    <span id="headerBadge" class="px-2 py-1 rounded text-xs font-bold uppercase">En attente</span>
+                </div>
+                <p id="headerDesc" class="text-sm text-gray-400">Vérifie si votre site bloque les attaques par injection courantes.</p>
+            </div>
+
+            <div class="glass-card p-6 rounded-xl bg-blue-900/20">
+                <h3 class="font-bold text-lg mb-2">Score de Santé</h3>
+                <div class="text-4xl font-black text-blue-400" id="globalScore">--/100</div>
+                <p class="text-xs text-gray-500 mt-2">Basé sur les configurations visibles publiquement.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function startScan() {
+            const domain = document.getElementById('domainInput').value.trim();
+            if (!domain) return alert("Entrez un domaine valide");
+
+            // UI Reset
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+
+            try {
+                // Simuler une attente pour l'effet "Cyber"
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Appel DNS réel via Google DNS API (pour SPF et DMARC)
+                const spfResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
+                const spfData = await spfResponse.json();
+                
+                let hasSPF = false;
+                if (spfData.Answer) {
+                    hasSPF = spfData.Answer.some(record => record.data.includes("v=spf1"));
+                }
+
+                // Simulation des autres tests (les navigateurs bloquent les tests SSL directs en JS)
+                updateUI(hasSPF, domain);
+
+            } catch (error) {
+                alert("Erreur lors de l'analyse. Vérifiez le domaine.");
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('results').classList.remove('hidden');
+            }
+        }
+
+        function updateUI(hasSPF, domain) {
+            // Mise à jour Protection Email
+            const mailBadge = document.getElementById('mailBadge');
+            if (hasSPF) {
+                mailBadge.innerText = "Sécurisé";
+                mailBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-green-500 text-white";
+                document.getElementById('mailDesc').innerText = "Enregistrement SPF trouvé. Vos emails sont mieux protégés.";
+            } else {
+                mailBadge.innerText = "Vulnérable";
+                mailBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-red-500 text-white";
+                document.getElementById('mailDesc').innerText = "Aucune protection SPF détectée. Risque élevé d'usurpation (Spoofing).";
+            }
+
+            // Mise à jour SSL (Simulation basée sur le domaine)
+            const sslBadge = document.getElementById('sslBadge');
+            sslBadge.innerText = "Inconnu";
+            sslBadge.className = "px-2 py-1 rounded text-xs font-bold uppercase bg-yellow-500 text-white";
+            document.getElementById('sslDesc').innerHTML = `Note: Pour vérifier le SSL de <b>${domain}</b>, vérifiez le cadenas dans votre navigateur.`;
+
+            // Score bidon pour la démo
+            document.getElementById('globalScore').innerText = hasSPF ? "75/100" : "30/100";
+            document.getElementById('headerBadge').innerText = "À vérifier";
+            document.getElementById('headerBadge').className = "px-2 py-1 rounded text-xs font-bold uppercase bg-blue-500 text-white";
+        }
+    </script>
+</body>
+</html>

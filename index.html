@@ -3,188 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberScan Pro | Rapport Officiel</title>
+    <title>CyberScan Pro | Console d'Audit & Rapport</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; margin: 0; overflow-x: hidden; }
         
-        /* Styles spécifiques pour le rendu PDF */
-        #report-content {
-            width: 210mm; /* Largeur A4 */
-            min-height: 297mm;
-            margin: 0 auto;
-            background: white;
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
+        
+        /* Style du Rapport A4 */
+        #report-view { background-color: #f1f5f9; color: #1e293b; display: none; min-height: 100vh; padding-bottom: 50px; }
+        .report-container { 
+            width: 210mm; 
+            min-height: 297mm; 
+            margin: 0 auto; 
+            background: white; 
+            box-shadow: 0 10px 50px rgba(0,0,0,0.2); 
+            position: relative;
         }
 
-        .pdf-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            background: #ffffff;
-        }
+        /* Animation de la barre de progression */
+        .progress-glow { box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); }
 
         @media print {
             .no-print { display: none !important; }
-            body { background: white; p: 0; }
+            #report-view { background: white; padding: 0; }
+            .report-container { box-shadow: none; margin: 0; }
         }
+
+        /* Scrollbar Terminal */
+        #terminal-logs::-webkit-scrollbar { width: 4px; }
+        #terminal-logs::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <nav class="no-print sticky top-0 z-50 bg-slate-900 text-white p-4 shadow-xl">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-shield-check text-blue-400"></i>
-                <span class="font-bold tracking-tighter uppercase">CyberScan <span class="text-blue-400">Pro</span></span>
-            </div>
-            <div class="flex gap-4">
-                <input type="text" id="domainInput" placeholder="ex: google.com" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="runGlobalScan()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded-lg text-sm font-bold transition-all">Analyser</button>
-                <button onclick="exportToPDF()" id="pdfBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 px-4 py-1 rounded-lg text-sm font-bold transition-all">
-                    <i class="fas fa-download mr-2"></i>Télécharger PDF
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <div id="report-content" class="shadow-2xl my-10 relative overflow-hidden">
-        
-        <div class="bg-[#0f172a] text-white p-12 flex justify-between items-end">
-            <div class="space-y-2">
-                <div class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded inline-block uppercase tracking-widest">Confidentiel</div>
-                <h1 class="text-4xl font-black tracking-tight uppercase">Rapport d'Audit</h1>
-                <p class="text-blue-400 text-sm font-medium italic">Analyse de visibilité et conformité DNS [cite: 1, 2]</p>
-            </div>
-            <div class="text-right space-y-1">
-                <p class="text-xs text-slate-400 uppercase font-bold">Domaine analysé [cite: 3]</p>
-                <p class="text-2xl font-mono font-bold text-white" id="targetDomain">---</p> <p class="text-xs text-slate-500" id="reportDate">--/--/----</p> </div>
-        </div>
-
-        <div class="p-12 space-y-10">
-            <div class="grid grid-cols-3 gap-8 items-center bg-slate-50 p-8 rounded-3xl border border-slate-100">
-                <div class="text-center border-r border-slate-200">
-                    <div class="text-5xl font-black text-slate-900" id="finalScore">--%</div> <div id="scoreLabel" class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Score de défense [cite: 9]</div>
+    <div id="setup-view" class="min-h-screen p-6 flex flex-col items-center">
+        <header class="w-full max-w-5xl py-12 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-shield-halved text-2xl text-white"></i>
                 </div>
-                <div class="col-span-2">
-                    <h3 class="font-bold text-slate-900 mb-1 uppercase text-sm">Synthèse de vulnérabilité [cite: 2]</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Ce score évalue la capacité de votre domaine à rejeter les tentatives d'usurpation d'identité. 
-                        Un score de 100% indique que vos protocoles SPF et DMARC sont actifs et conformes[cite: 11, 13, 15].
-                    </p>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">CyberScan <span class="text-blue-500">Pro</span></h1>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-[0.3em] uppercase mt-1 text-blue-400">Security Audit Suite</p>
                 </div>
             </div>
+            <div class="hidden md:block text-right">
+                <p class="text-[10px] text-slate-500 font-mono uppercase">Version 2.0.4 // Paid Tier</p>
+                <p class="text-[10px] text-emerald-500 font-mono uppercase">System: Operational</p>
+            </div>
+        </header>
 
+        <main class="w-full max-w-5xl space-y-8">
+            <section class="glass p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-5">
+                    <i class="fas fa-globe text-9xl"></i>
+                </div>
+                <h2 class="text-blue-400 text-xs font-black uppercase tracking-[0.25em] mb-6 flex items-center">
+                    <span class="h-1.5 w-1.5 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+                    Audit de Visibilité Domaine
+                </h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="domainInput" placeholder="ex: google.com" 
+                        class="flex-1 bg-slate-900/80 border border-slate-700 rounded-2xl px-6 py-5 outline-none focus:border-blue-500 transition-all font-mono text-lg">
+                    <button onclick="startAnalysisSequence()" 
+                        class="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20">
+                        LANCER L'AUDIT <i class="fas fa-bolt"></i>
+                    </button>
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <section class="glass p-8 rounded-[2rem] space-y-4">
+                    <h2 class="text-red-400 text-xs font-black uppercase tracking-widest flex items-center">
+                        <i class="fas fa-user-secret mr-2"></i> Fuites de données (OSINT)
+                    </h2>
+                    <div class="flex gap-2">
+                        <input type="email" id="emailInput" placeholder="email@entreprise.fr" 
+                            class="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-5 py-3 outline-none focus:border-red-500 transition-all text-sm font-mono">
+                        <button onclick="checkEmailSimple()" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/30 px-4 py-3 rounded-xl transition-all">
+                            <i class="fas fa-search text-xs"></i>
+                        </button>
+                    </div>
+                    <p id="emailStatus" class="text-[10px] text-slate-500 italic">Vérification des bases de données de compromission publiques.</p>
+                </section>
+
+                <section class="glass p-8 rounded-[2rem] space-y-4">
+                    <h2 class="text-emerald-400 text-xs font-black uppercase tracking-widest flex items-center">
+                        <i class="fas fa-key mr-2"></i> Analyse de Robustesse
+                    </h2>
+                    <input type="password" id="passInput" oninput="checkPassLocal()" placeholder="Saisir un mot de passe test" 
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-5 py-3 outline-none focus:border-emerald-500 transition-all text-sm font-mono">
+                    <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="passBar" class="h-full w-0 transition-all duration-500 bg-emerald-500 progress-glow"></div>
+                    </div>
+                    <p id="passFeedback" class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Entropie : 0 bits</p>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="loading-view" class="hidden min-h-screen flex flex-col items-center justify-center bg-[#0b0e14] fixed inset-0 z-[100]">
+        <div class="w-full max-w-lg p-8 space-y-8">
+            <div class="relative flex justify-center">
+                <div class="h-32 w-32 rounded-full border-t-2 border-l-2 border-blue-500 animate-spin"></div>
+                <div class="h-24 w-24 rounded-full border-b-2 border-r-2 border-emerald-500 animate-spin absolute top-4 opacity-50" style="animation-direction: reverse;"></div>
+                <i class="fas fa-shield-halved absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-blue-500 animate-pulse"></i>
+            </div>
             <div class="space-y-4">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Points de contrôle techniques [cite: 12, 14]</h3>
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="pdf-card p-6 flex justify-between items-center shadow-sm">
-                        <div class="flex gap-4 items-center">
-                            <div id="spfCircle" class="h-3 w-3 rounded-full bg-slate-300"></div>
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">Authentification de l'expéditeur (SPF) [cite: 12]</h4>
-                                <p id="spfText" class="text-xs text-slate-500 mt-1 italic">Analyse en attente...</p> </div>
-                        </div>
-                        <i id="spfIcon" class="fas fa-question-circle text-slate-300"></i>
-                    </div>
-                    <div class="pdf-card p-6 flex justify-between items-center shadow-sm">
-                        <div class="flex gap-4 items-center">
-                            <div id="dmarcCircle" class="h-3 w-3 rounded-full bg-slate-300"></div>
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">Politique Anti-Fraude (DMARC) [cite: 14]</h4>
-                                <p id="dmarcText" class="text-xs text-slate-500 mt-1 italic">Analyse en attente...</p> </div>
-                        </div>
-                        <i id="dmarcIcon" class="fas fa-question-circle text-slate-300"></i>
-                    </div>
+                <div class="flex justify-between items-end font-mono text-[10px] text-blue-400 uppercase tracking-[0.3em]">
+                    <span>Scanning Network</span>
+                    <span id="loadPercent">0%</span>
                 </div>
-            </div>
-
-            <div class="pt-6 space-y-6">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Plan de remédiation prioritaire</h3>
-                <div class="grid grid-cols-2 gap-6 text-[11px] leading-snug">
-                    <div class="space-y-3">
-                        <div class="flex gap-3">
-                            <i class="fas fa-check-square text-emerald-500 mt-1"></i>
-                            <p><strong>Activer le MFA :</strong> Obligatoire pour tous les accès cloud (Office365/Google Workspace).</p>
-                        </div>
-                        <div class="flex gap-3">
-                            <i class="fas fa-check-square text-emerald-500 mt-1"></i>
-                            <p><strong>Mise à jour :</strong> Appliquer les correctifs de sécurité sur les postes de travail sous 48h.</p>
-                        </div>
+                <div id="terminal-logs" class="bg-black/80 border border-slate-800 rounded-2xl p-6 h-48 overflow-y-auto font-mono text-[10px] text-slate-400 space-y-2 shadow-inner">
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex gap-3">
-                            <i class="fas fa-check-square text-emerald-500 mt-1"></i>
-                            <p><strong>Sensibilisation :</strong> Former les collaborateurs à la détection des URLs suspectes.</p>
-                        </div>
-                        <div class="flex gap-3">
-                            <i class="fas fa-check-square text-emerald-500 mt-1"></i>
-                            <p><strong>Sauvegardes :</strong> Vérifier l'étanchéité des sauvegardes (disque déconnecté).</p>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </div>
-
-        <div class="absolute bottom-0 w-full p-10 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">CyberScan Pro // Sécurité Opérationnelle</div>
-            <div class="text-[9px] text-slate-400">Ce rapport n'est pas un test d'intrusion.</div>
         </div>
     </div>
 
-    <script>
-        async function runGlobalScan() {
-            const domain = document.getElementById('domainInput').value.trim();
-            if(!domain) return;
+    <div id="report-view">
+        <div class="no-print bg-slate-900 p-4 sticky top-0 z-[200] flex justify-center gap-4 border-b border-slate-800 shadow-xl">
+            <button onclick="window.location.reload()" class="text-white border border-slate-700 px-8 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all uppercase tracking-widest">
+                <i class="fas fa-redo mr-2"></i> Nouvel Audit
+            </button>
+            <button onclick="exportToPDF()" class="bg-emerald-600 text-white px-8 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20 uppercase tracking-widest">
+                <i class="fas fa-file-pdf mr-2"></i> Exporter en PDF
+            </button>
+        </div>
 
-            document.getElementById('pdfBtn').classList.remove('hidden');
-            document.getElementById('targetDomain').innerText = domain.toUpperCase();
-            document.getElementById('reportDate').innerText = new Date().toLocaleDateString('fr-FR');
+        <div id="report-content" class="report-container overflow-hidden">
+            <div class="bg-[#0f172a] text-white p-14 flex justify-between items-end relative">
+                <div class="absolute top-0 right-0 p-14 opacity-10">
+                    <i class="fas fa-shield-check text-8xl"></i>
+                </div>
+                <div class="space-y-3 relative z-10">
+                    <div class="bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-sm inline-block uppercase tracking-[0.2em]">Rapport Officiel de Conformité</div>
+                    <h1 class="text-5xl font-black tracking-tighter uppercase leading-none">Analyse<br>Sécurité</h1>
+                    <p class="text-blue-400 text-sm font-medium italic opacity-80">Généré via CyberScan Pro Engine</p>
+                </div>
+                <div class="text-right relative z-10">
+                    <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Cible de l'audit</p>
+                    <p class="text-3xl font-mono font-bold text-white leading-none" id="resDomain">GOOGLE.COM</p>
+                    <p class="text-xs text-slate-500 mt-2" id="resDate">22/02/2026</p>
+                </div>
+            </div>
 
-            let score = 0;
-            const spfRes = await fetchDNS(domain, 'TXT');
-            const hasSPF = spfRes.some(r => r.includes('v=spf1'));
-            updateUI('spf', hasSPF, hasSPF ? "Le protocole SPF est correctement configuré." : "Attention : Absence de SPF détectée.");
-            if(hasSPF) score += 50;
+            <div class="p-14 space-y-12">
+                <div class="flex items-center gap-12 bg-slate-50 p-10 rounded-[2rem] border border-slate-100">
+                    <div class="text-center">
+                        <div class="text-7xl font-black leading-none" id="resScore">0%</div>
+                        <div id="resBadge" class="mt-4 text-[9px] font-black px-6 py-2 rounded-full uppercase tracking-widest">Initialisation</div>
+                    </div>
+                    <div class="border-l border-slate-200 pl-12">
+                        <h3 class="font-black text-slate-900 uppercase text-xs tracking-widest mb-3">Synthèse du Diagnostic</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed font-medium">
+                            Ce score technique agrège la présence et la validité des protocoles DNS anti-spoofing. 
+                            Une note de 100% indique que vos serveurs de messagerie sont correctement authentifiés au niveau mondial.
+                        </p>
+                    </div>
+                </div>
 
-            const dmarcRes = await fetchDNS(`_dmarc.${domain}`, 'TXT');
-            const hasDMARC = dmarcRes.some(r => r.includes('v=DMARC1'));
-            updateUI('dmarc', hasDMARC, hasDMARC ? "DMARC est actif et protège votre nom de domaine." : "Risque critique : Politique DMARC absente.");
-            if(hasDMARC) score += 50;
+                <div class="space-y-6">
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 flex items-center">
+                        <span class="w-8 h-[1px] bg-blue-600 mr-3"></span> Analyse des protocoles
+                    </h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="p-8 border border-slate-100 rounded-2xl flex justify-between items-center shadow-sm">
+                            <div class="flex gap-6 items-center">
+                                <div id="spfDot" class="h-3 w-3 rounded-full bg-slate-200"></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-800 uppercase tracking-tight">Authentification SPF</h4>
+                                    <p id="resSPF" class="text-xs text-slate-500 mt-1 italic font-medium">Analyse des enregistrements TXT...</p>
+                                </div>
+                            </div>
+                            <i id="iconSPF" class="fas fa-shield text-slate-200 text-xl"></i>
+                        </div>
+                        <div class="p-8 border border-slate-100 rounded-2xl flex justify-between items-center shadow-sm">
+                            <div class="flex gap-6 items-center">
+                                <div id="dmarcDot" class="h-3 w-3 rounded-full bg-slate-200"></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-800 uppercase tracking-tight">Protection DMARC</h4>
+                                    <p id="resDMARC" class="text-xs text-slate-500 mt-1 italic font-medium">Recherche de politique de rejet...</p>
+                                </div>
+                            </div>
+                            <i id="iconDMARC" class="fas fa-fingerprint text-slate-200 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
 
-            document.getElementById('finalScore').innerText = score + "%";
-            document.getElementById('finalScore').className = `text-5xl font-black ${score >= 100 ? 'text-emerald-600' : 'text-red-600'}`;
-            document.getElementById('scoreLabel').innerText = score >= 100 ? "NIVEAU DE SÉCURITÉ : ÉLEVÉ" : "NIVEAU DE SÉCURITÉ : INSUFFISANT";
-        }
-
-        async function fetchDNS(domain, type) {
-            try {
-                const res = await fetch(`https://dns.google/resolve?name=${domain}&type=${type}`);
-                const data = await res.json();
-                return data.Answer ? data.Answer.map(a => a.data) : [];
-            } catch { return []; }
-        }
-
-        function updateUI(id, success, text) {
-            const color = success ? '#10b981' : '#ef4444';
-            document.getElementById(`${id}Circle`).style.backgroundColor = color;
-            document.getElementById(`${id}Icon`).className = success ? "fas fa-check-circle text-emerald-500" : "fas fa-exclamation-triangle text-red-500";
-            document.getElementById(`${id}Text`).innerText = text;
-            document.getElementById(`${id}Text`).className = `text-xs mt-1 italic ${success ? 'text-slate-500' : 'text-red-500 font-bold'}`;
-        }
-
-        function exportToPDF() {
-            const element = document.getElementById('report-content');
-            const opt = {
-                margin: 0,
-                filename: `Audit_Cyber_${document.getElementById('targetDomain').innerText}.pdf`,
-                image: { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 3, useCORS: true, letterRendering: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-    </script>
-</body>
-</html>
+                <div class="pt-10 border-t border-slate-100">
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 mb-8">Recommandations de sécurité</h3>
+                    <div class="grid grid-cols-2 gap-10">
+                        <div class="space-y-5">
+                            <div class="flex gap-4">
+                                <span class="h-6 w-6 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-bold text-[10px]">01</span>
+                                <p class="text-[11px] text-slate-60

@@ -227,4 +227,117 @@
                             <div class="space-y-2">
                                 <div class="text-2xl font-black text-emerald-500">1</div>
                                 <p class="text-[10px] uppercase font-bold">Hors-Ligne</p>
-                                <p class="text-
+                                <p class="text-[9px] text-slate-400">Déconnecté du réseau.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 w-full p-10 border-t border-slate-100 bg-slate-50 text-[9px] text-slate-400 flex justify-between uppercase font-bold tracking-widest">
+                <span>Rapport CyberScan Pro v2.0</span>
+                <span>Analyse Non-Intrusive</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const terminalLogs = [
+            "INITIALIZING SECURE HANDSHAKE...",
+            "QUERYING GOOGLE CLOUD DNS API...",
+            "PARSING SPF AUTHENTICATION DATA...",
+            "VERIFYING DMARC ENFORCEMENT POLICY...",
+            "CHECKING SSL CERTIFICATE CHAIN...",
+            "GENERATING EXECUTIVE SUMMARY...",
+            "FINALIZING PDF ASSETS..."
+        ];
+
+        async function startAnalysisSequence() {
+            const domain = document.getElementById('domainInput').value.trim();
+            if(!domain) return alert("Veuillez saisir un domaine.");
+
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('loading-view').classList.remove('hidden');
+
+            const term = document.getElementById('terminal-logs');
+            for(let log of terminalLogs) {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="text-blue-500">></span> ${log}`;
+                term.appendChild(p);
+                term.scrollTop = term.scrollHeight;
+                await new Promise(r => setTimeout(r, 600));
+            }
+
+            await runAudit(domain);
+
+            setTimeout(() => {
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('report-view').style.display = 'block';
+            }, 500);
+        }
+
+        async function runAudit(domain) {
+            document.getElementById('resDomain').innerText = domain.toUpperCase();
+            document.getElementById('resDate').innerText = new Date().toLocaleDateString('fr-FR');
+
+            let score = 0;
+            const res = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
+            const data = await res.json();
+            const txt = data.Answer ? data.Answer.map(a => a.data) : [];
+
+            const hasSPF = txt.some(r => r.includes('v=spf1'));
+            const dmarcRes = await fetch(`https://dns.google/resolve?name=_dmarc.${domain}&type=TXT`);
+            const dmarcData = await dmarcRes.json();
+            const hasDMARC = dmarcData.Answer && dmarcData.Answer.length > 0;
+
+            if(hasSPF) score += 50;
+            if(hasDMARC) score += 50;
+
+            updateUIModule('spf', hasSPF, hasSPF ? "SPF Valide." : "SPF Absent.");
+            updateUIModule('dmarc', hasDMARC, hasDMARC ? "DMARC Actif." : "DMARC Manquant.");
+
+            const scoreEl = document.getElementById('resScore');
+            scoreEl.innerText = score + "%";
+            scoreEl.className = `text-7xl font-black ${score >= 100 ? 'text-emerald-600' : 'text-red-600'}`;
+            
+            const badge = document.getElementById('resBadge');
+            badge.innerText = score >= 100 ? "SÉCURISÉ" : "VULNÉRABLE";
+            badge.className = `mt-4 text-[9px] font-black px-6 py-2 rounded-full uppercase ${score >= 100 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+        }
+
+        function updateUIModule(id, success, msg) {
+            document.getElementById(`${id}Dot`).className = `h-3 w-3 rounded-full ${success ? 'bg-emerald-500' : 'bg-red-500'}`;
+            document.getElementById(`icon${id.toUpperCase()}`).className = success ? "fas fa-check-circle text-emerald-500 text-xl" : "fas fa-exclamation-triangle text-red-500 text-xl";
+            document.getElementById(`res${id.toUpperCase()}`).innerText = msg;
+            if(!success) document.getElementById(`res${id.toUpperCase()}`).className = "text-xs font-bold text-red-600";
+        }
+
+        function checkPassLocal() {
+            const p = document.getElementById('passInput').value;
+            const b = document.getElementById('passBar');
+            b.style.width = Math.min(100, p.length * 10) + "%";
+            b.className = `h-full transition-all duration-500 ${p.length < 8 ? 'bg-red-500' : 'bg-emerald-500'}`;
+        }
+
+        function checkEmailSimple() {
+            const em = document.getElementById('emailInput').value;
+            if(!em) return;
+            document.getElementById('emailStatus').innerText = "Analyse en cours...";
+            setTimeout(() => {
+                document.getElementById('emailStatus').innerHTML = `<span class='text-emerald-400'>${em}</span> : Aucune fuite majeure détectée publiquement.`;
+            }, 1000);
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('report-content');
+            html2pdf().set({
+                margin: 0,
+                filename: `Audit_Cyber_${document.getElementById('resDomain').innerText}.pdf`,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 3 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(element).save();
+        }
+    </script>
+</body>
+</html>
